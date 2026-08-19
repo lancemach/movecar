@@ -1,4 +1,14 @@
 {
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "movecar",
+  "main": "movecar.js",
+  "compatibility_date": "2026-08-19",
+  "kv_namespaces": [
+    {
+      "binding": "MOVE_CAR_STATUS",
+      "id": "d4f71878b2a14d228a0ebebc71a57be2"
+    }
+  ],
   "observability": {
     "enabled": false,
     "logs": {
