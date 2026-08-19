@@ -106,3 +106,39 @@ Success: Deploy command completed
 - `PHONE_NUMBER` 为可选变量，也应在 Cloudflare 的运行时变量中配置。
 - `npx wrangler versions upload` 仅用于非生产分支预览，不会把版本直接提升为正式部署。
 - `workers_dev` 和 `preview_urls` 的 Wrangler 警告不代表部署失败；如需消除警告，可在 `wrangler.jsonc` 中显式配置。
+
+## GitHub 自动触发排查记录
+
+构建配置正确、Worker 手动部署成功后，推送到 `main` 仍没有立即触发构建。排查发现，GitHub 中 Cloudflare Workers and Pages App 的仓库授权范围选错了：
+
+```text
+lancemach/CF-Workers-docker.io
+```
+
+而当前项目实际仓库是：
+
+```text
+lancemach/movecar
+```
+
+因此 Cloudflare 没有获得 `movecar` 仓库的 push 事件权限。修复方式是在 GitHub 的 Cloudflare Workers and Pages App 权限页面中：
+
+1. 保持 `Only select repositories`。
+2. 移除 `lancemach/CF-Workers-docker.io`。
+3. 添加并选择 `lancemach/movecar`。
+4. 点击 `Save`，确认 Cloudflare Worker 的 Git 存储库仍为 `lancemach/movecar`。
+
+修复后使用空提交验证触发器：
+
+```powershell
+git commit --allow-empty -m "test: trigger Cloudflare Workers build"
+git push origin main
+```
+
+Cloudflare 部署历史随后显示：
+
+```text
+正在进行  test: trigger Cloudflare Workers build  main
+```
+
+这证明 GitHub push 事件已经送达 Cloudflare，自动构建触发器恢复正常。构建完成后还应确认日志包含 `Success: Deploy command completed` 和 `✨ Success! Build completed.`。
