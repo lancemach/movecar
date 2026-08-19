@@ -142,3 +142,52 @@ Cloudflare 部署历史随后显示：
 ```
 
 这证明 GitHub push 事件已经送达 Cloudflare，自动构建触发器恢复正常。构建完成后还应确认日志包含 `Success: Deploy command completed` 和 `✨ Success! Build completed.`。
+
+## 非生产分支构建策略
+
+后续决定关闭 Cloudflare Workers Builds 的“非生产分支构建”选项，`dev` 分支不再触发 Cloudflare 预览部署。
+
+原因是当前 Worker 入口仍使用 Service Worker 语法：
+
+```javascript
+addEventListener('fetch', event => {
+  event.respondWith(handleRequest(event.request))
+})
+```
+
+而 Cloudflare 默认的非生产分支命令 `npx wrangler versions upload` 只支持 ES Module Worker，因此 `dev` 构建会失败并提示：
+
+```text
+You attempted to upload a Service Worker syntax script to the version upload API,
+which only supports ES Modules.
+```
+
+当前项目没有预览部署需求，开发调试在本地完成即可。关闭非生产分支构建还可以避免开发测试误使用生产 KV 或触发 Bark 通知。
+
+最终策略：
+
+```text
+dev 分支：本地开发和测试，不触发 Cloudflare 构建
+main 分支：执行 npx wrangler deploy，发布正式版本
+```
+
+本地调试使用：
+
+```powershell
+npx wrangler dev
+```
+
+发布流程为：
+
+```powershell
+git switch dev
+# 开发和本地测试
+git add .
+git commit -m "feat: xxx"
+git push origin dev
+
+git switch main
+git pull origin main
+git merge dev
+git push origin main
+```
